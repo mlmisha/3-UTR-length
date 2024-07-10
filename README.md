@@ -5,7 +5,7 @@
 > tg: *@ml_misha* </br>
 > bisy201072@gmail.com
 
-Hello! This is the repository corresponding to the research about the distribution of lengths of 3' untranslated regions (3'UTR) of the eukaryotic transcripts. (2024)
+Hello! This is the repository corresponding to the research on the distribution of lengths of 3' untranslated regions (3'UTR) of the eukaryotic transcripts. (2024)
 
 **Supervisor**: Biziaev Nikita, Alkalaeva Elena
 
@@ -18,7 +18,8 @@ It raised the question of how naturally lengths of 3'UTR differ among the eukary
 
 ### Contents
 
-Data was obtained with scripts presented in the `scripts_data` folder. 
-Raw obtained data can be seen in the folder `data`. All files are TSV tables each corresponding to specific organism.
-Main part of the analysis was made via R, relevant scripts are in the `scripts_analysis` folder. 
+- Data was obtained with scripts presented in the `scripts_data` folder. 
+- Raw obtained data can be seen in the folder `data`. All files are TSV tables each corresponding to specific organism.
+- Main part of the analysis was made via R, relevant scripts are in the `scripts_analysis` folder. 
+
 
