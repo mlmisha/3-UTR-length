@@ -19,7 +19,7 @@ It raised the question of how naturally lengths of 3'UTR differ among the eukary
 ### Contents
 
 - Data was obtained with scripts presented in the `scripts_data` folder. 
-- Raw obtained data can be seen in the folder `data`. All files are TSV tables each corresponding to specific organism.
+- Raw obtained data and other data used for analysis can be seen in the folder `data`
 - Main part of the analysis was made via R, relevant scripts are in the `scripts_analysis` folder. 
 - Some results of the analysis can be seen in the `results` folder. 
 
