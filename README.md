@@ -2,7 +2,6 @@
 
 
 > **Mikhail Loev** IMB Engelhardt</br>
-> tg: *@ml_misha* </br>
 > bisy201072@gmail.com
 
 Hello! This is the repository corresponding to the research on the distribution of lengths of 3' untranslated regions (3'UTR) of the eukaryotic transcripts. (2024)
