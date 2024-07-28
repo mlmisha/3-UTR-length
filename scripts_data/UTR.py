@@ -3,30 +3,31 @@ import sys
 import requests, sys
 import time
 
+xid = sys.argv[1]
+
 def extractor (transctipt_id,k):
   server = "https://rest.ensembl.org"
   cds = f"/sequence/id/{transctipt_id}?type=cds"
 
-  orf = requests.get(server+cds, headers={ "Content-Type" : "text/x-fasta",'User-Agent': f'.dksdlksjflsdkjflssdfs{k}'})
+  orf = requests.get(server+cds, headers={ "Content-Type" : "text/x-fasta",'User-Agent': f'erglernglekrnglekrgnlerkgn{k}'})
 
   if not orf.ok:
     orf.raise_for_status()
     sys.exit()
   return orf.text.strip()
 
-xid = sys.argv[1] #e.g file ../data/Chlamydomonas_reinhardtii.utrs
-
-stop_codons = {"TAA":[], "TAG": [], "TGA":[]}
+stop_codons =[]
+stops = ["TAA","TAG","TGA"]
 lost = []
-count = 0
-with open(f"{xid}",mode ="r") as data:
+lost_seq = []
+with open(f"PATH_TO_THE_PREPARED_3'UTRs_FILE/{xid}",mode ="r") as data:
     name = data.readline().strip()
     utr_seq = name
     while name!="" and utr_seq!="":
       print(".",end = "",flush=True)
       if count%1000==0:
         print()
-        print(count,xid,flush=True)
+        print(count,flush=True)
       failed = False
       try:
         cds = extractor(name,count)
@@ -45,26 +46,24 @@ with open(f"{xid}",mode ="r") as data:
         if attempts>=5:
           failed = True
       count+=1
-      if not failed:  
+      if not failed:
+        print(name)
         stop_codon = cds[-3::]
         utr_seq = data.readline().strip()
         utr_length = len(utr_seq)
-        if stop_codon in stop_codons:
-          stop_codons[stop_codon].append(utr_length)
+        if stop_codon in stops:
+          stop_codons.append([name, stop_codon, utr_length])
         name = data.readline().strip()
       else:
-        lost.append(name) #to be able to run the script again on transcripts that occasionaly were lost during the run
-        name = data.readline().strip()
+        lost.append(name)
+        lost_s = data.readline().strip()
+        lost_seq.append(lost_s)
         name = data.readline().strip()
 
-import pandas as pd
-
-df = pd.DataFrame({key: pd.Series(value) for key, value in stop_codons.items()})
-df.to_csv(f"{xid}.tsv", encoding="utf-8",index=False,sep="\t")
-with open(f"{xid}.txt",mode = "w") as out:
-    for i in lost:
-        print(i, file = out)
-datas = 0
-for key,value in stop_codons.items():
-   datas+=len(value)
-print(f"TOTAL: {datas}")
+with open(f"PATH_TO_THE_RESULT_DIR/RES_{xid}.tsv", mode = "w") as out:
+    for i in stop_codons:
+        print(*i, sep="\t", file = out)
+with open(f"PATH_TO_THE_LOST_DIR/LOST_{xid}.tsv", mode = "w") as out: #to manage 3'UTRs lost due to some request errors 
+    for i in range(len(lost)):
+        print(lost[i], file = out)
+        print(lost_seq[i], file = out)
