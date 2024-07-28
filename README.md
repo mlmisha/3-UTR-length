@@ -6,7 +6,7 @@
 
 Hello! This is the repository corresponding to the research on the distribution of lengths of 3' untranslated regions (3'UTR) of the eukaryotic transcripts. (2024)
 
-**Supervisor**: Biziaev Nikita, Alkalaeva Elena
+**Supervisors**: Biziaev Nikita, Alkalaeva Elena
 
 ---
 
