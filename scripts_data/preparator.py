@@ -2,23 +2,31 @@ import sys
 
 xig = sys.argv[1]
 
-with open(f"./{xig}",mode = "r") as data:
+
+final = {}
+with open(f"PATH_TO_THE_RAW_UTRs_FILE/{xig}",mode = "r") as data:
     line = data.readline().strip()
-    names = []
     seqs = []
     while line != "":
         if line.startswith(">|three"):
-            names.append(line.split("|")[2])
+            name = line.split("|")[2]
             line = data.readline().strip()
             seq = []
             while not line.startswith(">") and line !="":
                 seq.append(line)
                 line = data.readline().strip()
-            seqs.append("".join(seq))
+            utr_temp_seq = "".join(seq)
+            if name in final:
+                final[name].append(utr_temp_seq)
+            else:
+                final[name] = [utr_temp_seq]
         else:
             while line != "" and not line.startswith(">|three"):
                 line = data.readline().strip()
-with open(f"PATH_TO_THE_RESULT",mode = "w") as out:
-    for i in range(len(names)):
-        print(names[i],file=out)
-        print(seqs[i],file=out)
+
+with open(f"PATH_TO_THE_RESULT/{xig}", mode = "w") as out:
+ for key, value in final.items():
+    final[key] = "".join(value)
+    print(key, file = out)
+    print(final[key], file = out)
+
