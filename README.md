@@ -1,8 +1,7 @@
 ## Maximum Shortening and Structure of 3′UTR Affect Eukaryotic Translation ## 
 
 
-> **Ali Salman, Mikhail Loev, Tatiana Egorova, Alexey Shuvalov, Ekaterina Shuvalova, Nikita
-Biziaev, and Elena Alkalaeva**
+> **Ali Salman, Mikhail Loev, Tatiana Egorova, Alexey Shuvalov, Ekaterina Shuvalova, Nikita Biziaev and Elena Alkalaeva**
 
 > bisy201072@gmail.com
 
