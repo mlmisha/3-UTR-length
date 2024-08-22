@@ -1,0 +1,355 @@
+---
+title: "3'UTR length distribution among eukaryotes"
+output: html_document
+date: "2024"
+---
+
+```{r}
+library(biomaRt)
+library(ggplot2)
+library(tidyverse)
+library(ggridges)
+library(ggpubr)
+library(rstatix)
+library(hrbrthemes)
+library(dplyr)
+library(readr)
+library(clusterProfiler)
+library(enrichplot)
+```
+
+Visualization functions
+
+```{r}
+boxoploto_ylim <- function(data_for_plot, y_lim = 100000000){
+  data_for_plot %>% ggplot(aes(x = Codon, y = Length, color = Codon)) +
+    geom_boxplot(lwd=1.1, fatten = 1, show.legend = FALSE, width = .8)+
+    coord_cartesian(ylim = c(0,y_lim))+
+    scale_color_manual(values = c("#ff7f00", "#007fff","#ff0065"))+
+    theme_minimal()+
+    theme(text = element_text(size = 25), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.title.y = element_text(margin = margin(t = 0, r = 20, b = 0, l= 0)), axis.title.x = element_text(margin = margin(t = 20, r = 0, b = 0, l=0)), axis.line.x = element_line(colour = 'black', linewidth = 0.5, linetype='solid'),
+          axis.line.y = element_line(colour = 'black', linewidth = 0.5, linetype='solid'), axis.ticks = element_line(colour = 'black'), axis.ticks.length=unit(0.2,"cm"))
+}##function for plotting alike boxplots enabling setting the exact maximum value depicted on the Y axis
+
+densoploto <- function(data_for_plot,maxlength = 1000000000){
+  data_for_plot %>% filter (Length < maxlength) %>% ggplot(aes(x=Length, color=Codon))+
+  geom_density(adjust=1.5, size=0.8)+
+  scale_color_manual(values = c("#ff7f00", "#007fff","#ff0065"))+
+  theme_ipsum(base_family = "Arial", base_size = 20, axis_title_size = 25,axis=TRUE, ticks=TRUE,  axis_title_just = "m")+
+  theme(text = element_text(size = 25), axis.text=element_text(size=25), axis.title = element_text(size=25),panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line.x = element_line(colour = 'black', linewidth = 0.5, linetype='solid'),
+          axis.line.y = element_line(colour = 'black', linewidth = 0.5, linetype='solid'), axis.ticks = element_line(colour = 'black'), axis.ticks.length=unit(0.2,"cm"), legend.position = "none")+
+    xlab("Length")+ ylab("Density")
+} #function for plotting alike probability density plots with maxlength option, enabling to set the limit of 3'UTR length to be included to the plot
+
+densoploto_param <- function(data_for_plot,maxlength = 1000000000){
+  data_for_plot %>% filter (Length < maxlength) %>% ggplot(aes(x=Length, color=Codon))+
+  geom_density(adjust=1.5, size=0.8)+
+  scale_color_manual(values = c("#ff0065"))+
+  theme_ipsum(base_family = "Arial", base_size = 20, axis_title_size = 25,axis=TRUE, ticks=TRUE,  axis_title_just = "m")+
+  theme(text = element_text(size = 25), axis.text=element_text(size=25), axis.title = element_text(size=25),panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line.x = element_line(colour = 'black', linewidth = 0.5, linetype='solid'),
+          axis.line.y = element_line(colour = 'black', linewidth = 0.5, linetype='solid'), axis.ticks = element_line(colour = 'black'), axis.ticks.length=unit(0.2,"cm"))+
+    xlab("Length")+ ylab("Density")
+}#same function only for Paramecium tetraurelia dataset, where only UGA codon is present so the colors list had to be corrected
+```
+
+
+##Human data analysis
+
+###General distribution
+
+```{r}
+human_data <- read_delim("../data/RES_Homo_sapiens.GRCh38.107.utrs.tsv",delim="\t", col_names = c("Transcript_ID", "Codon", "Length"))
+human_data$Codon <- gsub("T", "U", human_data$Codon)
+
+HUMAN_TOTAL_LIST <- read_delim("../data/Human_trans_gene_total.tsv", delim = "\t", col_names = c("Transcript_ID", "Gene"))
+
+human_data%>% group_by(Codon) %>% summarise(Mean = mean(Length), Max = max(Length), Min = min(Length), Median = median(Length), Std = sd(Length))
+human_data %>% group_by(Codon) %>% dplyr::count()
+```
+
+```{r}
+human_all <- boxoploto_ylim(human_data, 35000) #Figure 1B upper
+human_not_all <- boxoploto_ylim(human_data, 3000) #Figure 1B central
+human_dens_zoom <- densoploto(human_data, 3000)#Figure 1B lower
+```
+
+###Human enrichment analysis
+
+####Small 3'UTRs
+
+Two groups: L<=10 and 10<L<=50
+
+```{r}
+hum_trans_gene <- merge(human_data, HUMAN_TOTAL_LIST, by="Transcript_ID") %>% dplyr::select(Gene,Codon,Length)
+hum_10 <- hum_trans_gene %>% filter(Length<=10)
+
+hum_10_go <- enrichGO(gene = hum_10$Gene, 
+                    universe=hum_trans_gene$Gene, 
+                    keyType = "ENSEMBL",
+                    ont = "ALL",
+                    OrgDb ="org.Hs.eg.db",
+                    pAdjustMethod = "BH", 
+                    readable = TRUE)
+hum_10_go_emap <- hum_10_go %>% enrichplot::pairwise_termsim() %>%
+  emapplot(showCategory = 50,cex_label_category = 1, cex_category = 0.5, repel=TRUE, label_format  = 0.5) + theme(text = element_text(size = 25), legend.text=element_text(size=14), legend.title=element_text(size=14)) + scale_fill_gradientn(colours=c("#ff7f00", "#007fff"), guide = "colorbar", aesthetics = c("fill")) + labs(fill = "p-adjust")#Figure S3 upper
+
+hum_10_go_tsv <- data.frame(hum_10_go)
+write_tsv(hum_10_go_tsv, file = "../results/hum_10_go.tsv")
+
+hum_11_50 <- hum_trans_gene %>% filter(Length>10 & Length <=50)
+hum_11_50_go <- enrichGO(gene = hum_11_50$Gene, 
+                    universe=hum_trans_gene$Gene, 
+                    keyType = "ENSEMBL",
+                    ont = "ALL",
+                    OrgDb ="org.Hs.eg.db",
+                    pAdjustMethod = "BH", 
+                    readable = TRUE)
+
+hum_11_50_go_emap <- hum_11_50_go %>% enrichplot::pairwise_termsim() %>%
+emapplot(showCategory = 50,cex_label_category = 1, cex_category = 0.5, repel=TRUE, label_format  = 0.5) + theme(text = element_text(size = 25), legend.text=element_text(size=14), legend.title=element_text(size=14)) + scale_fill_gradientn(colours=c("#ff7f00", "#007fff"), guide = "colorbar", aesthetics = c("fill")) + labs(fill = "p-adjust")#Figure S3 lower
+
+hum_11_50_go_tsv <- data.frame(hum_11_50_go)
+write_tsv(hum_11_50_go_tsv, file = "../results/hum_11_50_go.tsv")
+
+
+```
+
+
+And now let's obtain genes that are located in the nodes of interest (ribosomes, translation) and have only short 3'UTRs. Since single gene can have several transcript variants, it can have 3'UTRs <50 and >100. Here we are interested in the genes having only small variants. Those that have both short and long 3'UTRs are basically available from the results of enrichment analysis.  
+
+First was to filter the letter files to obtain genes with only interesting GO categories and than get the list of unique genes, as they can occur in several GO categories. This was made via function gene_extractor in /scripts_analysis/3'UTR.ipynb. 
+
+```{r}
+hum_11_50_genes <- read_delim ("../results/GENES_11_HUM.tsv", delim = "\t", col_names = c("Gene")) #there are also genes that also have long 3'UTRs, let's get rid of them
+
+hum_11_50_genes_ensembl <- getBM(c("external_gene_name","ensembl_gene_id"),"external_gene_name", hum_11_50_genes$Gene, mart)
+
+colnames(hum_11_50_genes_ensembl) <-  c("Symbol", "Gene")
+
+hum_11_50_trans_ensembl <- merge(hum_11_50_genes_ensembl, HUMAN_TOTAL_LIST, by = "Gene")
+
+hum_11_50_trans_length_ensembl <- merge(hum_11_50_trans_ensembl, human_data, by = "Transcript_ID")
+
+less_50 <-  hum_11_50_trans_length_ensembl %>% filter (Length <= 50) 
+more_50 <-  hum_11_50_trans_length_ensembl %>% filter (Length > 50) 
+small_50 <- less_50 %>% filter(!Symbol %in% more_50$Symbol) %>% dplyr::select("Transcript_ID", "Symbol", "Length")
+
+write_tsv(small_50, "../results/small_50.tsv") #there are genes with only short 3'UTRs
+```
+
+The same procedure for small (<10 nt) ones:
+
+```{r}
+hum_10_genes <- read_delim ("../results/GENES_10_HUM.tsv", delim = "\t", col_names = c("Gene"))
+
+hum_10_genes_ensembl <- getBM(c("external_gene_name","ensembl_gene_id"),"external_gene_name", hum_10_genes$Gene, mart)
+
+colnames(hum_10_genes_ensembl) <-  c("Symbol", "Gene")
+
+hum_10_trans_ensembl <- merge(hum_10_genes_ensembl, hum_trans_gene, by = "Gene")
+
+less_10 <-  hum_10_trans_ensembl %>% filter (Length <= 10) 
+more_10 <-  hum_10_trans_ensembl %>% filter (Length > 10) 
+small_10 <- less_10 %>% filter(!Symbol %in% more_10$Symbol) %>% dplyr::select("Gene", "Symbol", "Length")
+
+write_tsv(small_10, "../results/small_10.tsv")
+```
+
+###Housekeeping genes
+
+List of human housekeeping genes is taken from https://www.tau.ac.il/~elieis/HKG/. It is stored in the "../data/HK_genes.txt" file
+
+```{r}
+hum_house <- read_delim("../data/HK_genes.txt", delim = " \t", col_names = c("SYMBOL", "Nucl_DB"))
+
+hum_house_ensembl <- getBM("ensembl_gene_id","external_gene_name", hum_house$SYMBOL, mart)
+colnames(hum_house_ensembl) <- c("Gene")
+hum_house_merged <- merge(hum_house_ensembl, hum_trans_gene, by="Gene")
+
+hum_house_merged$Codon <- gsub("T", "U", hum_house_merged$Codon)
+
+hum_house_all <- boxoploto_ylim(hum_house_merged, 35000)#Figure S1 upper right
+hum_house_3000 <- boxoploto_ylim(hum_house_merged, 3000)#Figure S1 lower right
+hum_house_all_dens <- densoploto(hum_house_merged)#Figure S1 upper left
+hum_house_3000_dens <- densoploto(hum_house_merged, 3000)#Figure S1 lower left
+
+hum_house_merged %>% group_by(Codon) %>% summarise(Mean = mean(Length), Max = max(Length), Min = min(Length), Median = median(Length), Std = sd(Length))
+
+write_tsv(hum_house_merged, file = "../data/human_house.tsv")
+
+```
+
+##Rabbit data analysis
+
+###Rabbit vs Human
+
+Primarily, it's required to obtain the list of rabbit and human orthologous genes. 
+
+```{r}
+mart <- useMart("ENSEMBL_MART_ENSEMBL","hsapiens_gene_ensembl") #human mart object
+```
+
+Get ENSEMBL gene IDs from transcript IDs
+```{r}
+rab_res <- read_delim("../data/RES_Oryctolagus_cuniculus.OryCun2.0.107.utrs.tsv",delim="\t",col_names = c("Transcript_ID","Codon","Length"))
+rab_total <- read_delim("../data/Rabbit_trans_gene_total.tsv",delim="\t",col_names = c("Transcript_ID","Gene"))
+
+merged_res <- merge(rab_res,rab_total,by="Transcript_ID")
+rab_genes <- merged_res %>% dplyr::select(Gene)
+colnames(rab_genes) <- c("Rab_Gene")
+
+```
+
+```{r}
+rab_mart <- useMart("ensembl", dataset = "ocuniculus_gene_ensembl", host="https://feb2021.archive.ensembl.org")
+human_mart <- useMart("ensembl", dataset = "hsapiens_gene_ensembl",host = "https://feb2021.archive.ensembl.org")
+
+orth <- getLDS(mart = rab_mart, attributes = c("ensembl_gene_id"), martL = human_mart, attributesL = c("ensembl_gene_id"))
+colnames(orth) <- c("Rab_Gene", "Hum_Gene")
+
+```
+
+```{r}
+target_orths <- merge(rab_genes, orth, by = "Rab_Gene") #have some replicated rows, so has to be filtered
+```
+
+
+```{r}
+uniq_orths <- target_orths %>% unique()
+target_genes_rabbit <- uniq_orths %>% dplyr::select(Rab_Gene)
+target_genes_human <- uniq_orths %>% dplyr::select(Hum_Gene)
+colnames(target_genes_rabbit) <- c("Gene")
+colnames(target_genes_human) <- c("Gene")
+```
+
+Now we have a list of orthologous genes. Next step is to get the list of transcripts for each organism. To do that tables provided by the UTRdb 2.0 will be used
+
+```{r}
+target_rabbit_transcripts <- merge(target_genes_rabbit, rab_total, by = "Gene") %>% dplyr::select("Transcript_ID") %>% unique()
+target_human_transcripts <- merge(target_genes_human, HUMAN_TOTAL_LIST, by = "Gene") %>% dplyr::select("Transcript_ID") %>% unique()
+```
+
+
+```{r}
+hum_orth <- merge(target_human_transcripts, human_data)
+rab_orth <- merge(target_rabbit_transcripts, rab_res)
+
+write_tsv(rab_orth, file = "../data/RABORTH.tsv")
+
+hum_orth$Codon <- gsub("T", "U",hum_orth$Codon )
+rab_orth$Codon <- gsub("T", "U",rab_orth$Codon )
+
+
+hum_orth_box <- boxoploto_ylim(hum_orth, 30000)#Figure S2A upper right
+hum_orth_box_3000 <- boxoploto_ylim(hum_orth, 3000)#Figure S2A central right
+rab_orth_box <- boxoploto_ylim(rab_orth, 30000)#Figure S2A upper left
+rab_orth_box_3000 <- boxoploto_ylim(rab_orth, 3000)#Figure S2A central left
+
+rab_orth_dens <- densoploto(rab_orth, 5000)#Figure S2A lower left
+
+
+hum_orth %>% group_by(Codon) %>% summarise(Mean = mean(Length), Max = max(Length), Min = min(Length), Median = median(Length), Std = sd(Length))
+rab_orth %>% group_by(Codon) %>% summarise(Mean = mean(Length), Max = max(Length), Min = min(Length), Median = median(Length), Std = sd(Length))
+
+hum_orth %>% group_by(Codon) %>% dplyr::count()
+rab_orth %>% group_by(Codon) %>% dplyr::count()
+```
+
+Rabbit has a minor mode in the area of 1000 nt, which is absent in the human's one. But what are the lengths among human orthologs for genes from this are of rabbit?
+
+```{r}
+rab_orth_1000 <- rab_orth %>% filter(Length == 1000)
+rabbit_orth_gene_trans <- merge(target_genes_rabbit, rab_total, by = "Gene") %>% merge (rab_orth_1000, by = "Transcript_ID")
+
+colnames(rabbit_orth_gene_trans) <- c("Transcript_ID", "Rab_Gene", "Codon", "Length")
+
+human_genes_of_rabb_1000 <- merge(rabbit_orth_gene_trans, orth, by = "Rab_Gene") %>% dplyr::select("Hum_Gene")
+colnames(human_genes_of_rabb_1000) <- c("Gene")
+human_trans_of_rabb_1000 <- merge(human_genes_of_rabb_1000, HUMAN_TOTAL_LIST, by = "Gene") %>% unique() %>% merge(human_data, by = "Transcript_ID")
+
+human_trans_of_rabb_1000_max_5000 <- human_trans_of_rabb_1000 %>% filter(Length<5000) %>% dplyr::slice_sample(n=1000)
+human_genes_from_1000_of_rabbit <- hum_orth %>% filter(Length<5000) %>% densoploto(5000) + geom_rug(data =human_trans_of_rabb_1000_max_5000, aes(x = Length), inherit.aes = FALSE)#Figure S2A lower right
+```
+
+##Mus musculus 
+
+```{r}
+mouse <- read_delim ("../data/RES_Mus_musculus.GRCm39.107.utrs.tsv", delim = "\t", col_names = c("Transcript_ID", "Codon", "Length"))
+mouse_5000 <- densoploto(mouse, 5000)#Figure S2B
+```
+
+##General distribution
+
+```{r}
+#File ../data/TOTAL.tsv doesn't exist in the repository as it is to large even in the compressed format. It is split into three parts and previously they had to be merged to complete this part of the project
+total_prec <- read_delim("../data/TOTAL.tsv",delim = "\t", col_names = c("Transcript_ID", "Codon", "Length")) #TOTAL_PY.tsv is too big, so it's kept as a .zip file in the repo
+total_prec$Codon <- gsub("T","U", total_prec$Codon)
+
+total_box <- boxoploto_ylim(total_prec,1115000)#Figure 1A upper
+total_box_3000 <- boxoploto_ylim(total_prec,3000)#Figure 1A central
+prec_dens_zoom <- densoploto(total_prec, 3000)#Figure 1A lower
+
+total_prec %>% nrow()
+total_prec %>% group_by(Codon) %>% summarise(Mean = mean(Length), Max = max(Length), Min = min(Length), Median = median(Length), Std = sd(Length))
+total_prec %>% group_by(Codon) %>% dplyr::count()
+```
+
+##Small 3'UTR holders
+
+###Paramecium tetraurelia
+
+Data is obtained with Python script ../scripts_data/Paramecium.py
+
+```{r}
+param_data <- read_delim("../data/Paramecium_tetraurelia.RES.tsv", delim="\t", col_names = c("Transcript_ID", "Codon", "Length"))
+
+param_data$Codon <- gsub("T", "U", param_data$Codon)
+
+param_800 <- param_data %>%filter(Codon=="UGA")%>% boxoploto_ylim(800)#Figure 2B upper left
+param_200 <- param_data %>% filter(Length>0) %>% boxoploto_ylim(230)#Figure 2B lower left
+param_800_dens <- param_data %>%filter(Codon=="UGA")%>% densoploto(800)#Figure 2B upper right
+
+param_data %>% group_by(Codon) %>% summarise(Mean = mean(Length), Max = max(Length), Min = min(Length), Median = median(Length), Std = sd(Length))
+param_data %>% group_by(Codon) %>% dplyr::count()
+
+param_tga <- param_data %>% filter(Codon == "UGA")
+```
+
+###Others
+Organisms having small 3'UTR length median values were chosen via Python script that can be found in the /scripts_analysis/3'UTR.ipynb notebook. 
+
+```{r}
+o_lucim_data <- read_delim("../data/RES_Ostreococcus_lucimarinus.ASM9206v1.54.utrs.tsv", delim = "\t",col_names = c("Transcript_ID", "Codon","Length"))
+p_perni_data <- read_delim("../data/RES_Phlebotomus_perniciosus_gca918844115.pperniciosus_illum_n82538_165Mb.54.utrs.tsv", delim = "\t",col_names = c("Transcript_ID", "Codon","Length"))
+a_lyrata_data <- read_delim("../data/RES_Arabidopsis_lyrata.v.1.0.54.utrs.tsv", delim = "\t", col_names = c("Transcript_ID", "Codon","Length"))
+d_willistoni_data <- read_delim("../data/Combined/RES_Drosophila_willistoni.dwil_caf1.54.utrs.tsv", delim = "\t", col_names = c("Transcript_ID", "Codon","Length")) 
+
+o_lucim_data$Codon <- gsub("T", "U", o_lucim_data$Codon)
+p_perni_data$Codon <- gsub("T", "U", p_perni_data$Codon)
+a_lyrata_data$Codon <- gsub("T", "U", a_lyrata_data$Codon)
+d_willistoni_data$Codon <- gsub("T", "U", d_willistoni_data$Codon)
+
+alyr <- boxoploto_ylim(a_lyrata_data, 230)#Figure 2A upper left
+dros <- boxoploto_ylim(d_willistoni_data, 230)#Figure 2A upper right
+olucim <- boxoploto_ylim(o_lucim_data, 230)#Figure 2A lower left
+pperni <- boxoploto_ylim(p_perni_data, 230)#Figure 2A lower right
+```
+
+Extra
+
+Is it equally common for all stop-codons to have transcripts without 3'UTR?
+
+```{r}
+total_zero_or_no <- total_prec %>% dplyr::mutate("Zero" = Length == 0) %>% dplyr::select(Codon, Zero)
+
+total_zeros <- total_prec %>% filter(Length == 0) %>% group_by(Codon) %>% dplyr::count()
+total_nonz <- total_prec %>% filter(Length > 0) %>%group_by(Codon) %>% dplyr::count()
+
+c <- merge(total_zeros, total_nonz, by = "Codon")
+colnames(c) <- c("Codon", "Zeros", "Nonzeros")
+#c <- c %>% dplyr::mutate("Zeros_ratio" = Zeros/(Zeros+Nonzeros)) %>% dplyr::mutate("Nonzeros_ratio"= Nonzeros/(Zeros+Nonzeros)) - here you can see that the proprotions are the same in all three groups
+c <- c %>% dplyr::select(Zeros, Nonzeros)
+
+chisq.test(c)
+cramer_v(c)
+```
