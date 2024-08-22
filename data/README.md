@@ -5,6 +5,7 @@ Hello! This folder contains data for analysis
 - `HK_genes.txt` is a list of human housekeeping genes, obtained from https://www.tau.ac.il/~elieis/HKG/
 - `Human_trans_gene_total.tsv` is a table of genes and corresponding transcripted obtained from the UTRdb 2.0
 - `Paramecium_tetraurelia.RES.tsv` is a final table for *Paramecium tetraurelia*
+- `RABORTH.tsv` is a table with 3'UTR lengths for rabbit genes having human orthologs
 - `RES_Arabidopsis_lyrata.v.1.0.54.utrs.tsv` is a final table for *Arabidopsis lyrata*
 - `RES_Drosophila_willistoni.dwil_caf1.54.utrs.tsv` is a final table for *Drosophila willistoni*
 - `RES_Homo_sapiens.GRCh38.107.utrs.tsv` is a final table for human.
@@ -14,4 +15,5 @@ Hello! This folder contains data for analysis
 - `Rabbit_trans_gene_total.tsv` is a table of genes and corresponding transcripted obtained from the UTRdb 2.0
 - `human_house.tsv` is a table of 3'UTR lengths corresponding to human housekeeping genes
 - `TOTAL_PY.tsv.zip` is a final merged table, contating all infromation from all the organisms analysed
+  
 
