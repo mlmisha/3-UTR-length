@@ -1,18 +1,18 @@
-## Analysis of 3'UTR lengths among the eukaryotes ## 
+## Maximum Shortening and Structure of 3′UTR Affect Eukaryotic Translation ## 
 
 
-> **Mikhail Loev** IMB Engelhardt</br>
+> **Ali Salman, Mikhail Loev, Tatiana Egorova, Alexey Shuvalov, Ekaterina Shuvalova, Nikita
+Biziaev, and Elena Alkalaeva**
+
 > bisy201072@gmail.com
 
 Hello! This is the repository corresponding to the research on the distribution of lengths of 3' untranslated regions (3'UTR) of the eukaryotic transcripts. (2024)
-
-**Supervisors**: Biziaev Nikita, Alkalaeva Elena
 
 ---
 
 ### About
 
-The study is the part of the bigger experimental research on 3' untraslated regions in eukaryotes. One of the parts of the research is to analyse how length of 3'UTR correleates with translation efficiency  and mRNA stability.
+The study is the part of the bigger experimental research on 3' untraslated regions in eukaryotes (). One of the parts of the research is to analyse how length of 3'UTR correleates with translation efficiency  and mRNA stability.
 It raised the question of how naturally lengths of 3'UTR differ among the eukaryotes. To answer this question we analysed the database of eukaryotic untraslated regions UTRdb 2.0 (http://utrdb.cloud.ba.infn.it/utrdb/index_107.html, DOI: 10.1093/nar/gkac1016) where information about over 570 organisms is presented.
 
 ### Contents
