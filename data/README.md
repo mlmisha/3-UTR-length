@@ -1,7 +1,8 @@
 Hello! This folder contains data for analysis
 
 - `Org_tables` folder contains final tables of 3'UTR length for each organism separately
-- `Chlamydomonas_reinhardtii.txt` is an example of file used by the `../scripts_data/UTR.py` script to build the final table. The data in in this file is a modified file, downloaded from the UTRdb 2.0 database. Modification is made with `../scripts_data/preparator.py` script. It has `.txt` format to be readable on GitHub, script also work with file in `.utrs` format that remains after `../scripts_data/preparator.py` launch. 
+- `Chlamydomonas_reinhardtii_for_UTR.py.txt` is an example of file used by the `../scripts_data/UTR.py` script to build the final table. The data in in this file is a modified file, downloaded from the UTRdb 2.0 database. Modification is made with `../scripts_data/preparator.py` script. It has `.txt` format to be readable on GitHub, script also work with file in `.utrs` format that remains after `../scripts_data/preparator.py` launch.
+- `Chlamydomonas_reinhardtii_for_UTR_zeros.py.txt` is an example of file used by the `../scripts_data/UTR_zeros.py` script to build the  table of transcipts without 3'UTR. The data in in this file is a list of Ensembl transcript IDs that has only 5'UTR entries in the UTRdb 2.0.
 - `HK_genes.txt` is a list of human housekeeping genes, obtained from https://www.tau.ac.il/~elieis/HKG/
 - `Human_trans_gene_total.tsv` is a table of genes and corresponding transcripted obtained from the UTRdb 2.0
 - `Paramecium_tetraurelia.RES.tsv` is a final table for *Paramecium tetraurelia*
