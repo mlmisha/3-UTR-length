@@ -11,7 +11,7 @@ Hello! This is the repository corresponding to the research on the distribution 
 ### About
 
 The study is the part of the bigger experimental research on 3' untraslated regions in eukaryotes. One of the parts of the research is to analyse how length of 3'UTR correleates with translation efficiency  and mRNA stability.
-It raised the question of how naturally lengths of 3'UTR differ among the eukaryotes. To answer this question we analysed the database of eukaryotic untraslated regions UTRdb 2.0 (http://utrdb.cloud.ba.infn.it/utrdb/index_107.html, DOI: 10.1093/nar/gkac1016) where information about over 570 organisms is presented.
+It raised the question of how naturally lengths of 3'UTR differ among the eukaryotes. To answer this question we analysed the GENCODE human protein-coding transcripts annotation (GENCODE v47, Rel. Oct 2024, GRCh38.p14).
 
 ### Contents
 
