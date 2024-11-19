@@ -1,0 +1,333 @@
+---
+title: "3'UTR length distribution among eukaryotes"
+output: html_document
+date: "2024"
+---
+
+
+Prerequisites: 
+
+```{r}
+library(biomaRt)
+library(ggplot2)
+library(tidyverse)
+library(ggridges)
+library(ggpattern)
+library(ggpubr)
+library(rstatix)
+library(hrbrthemes)
+library(dplyr)
+library(readr)
+library(clusterProfiler)
+library(enrichplot)
+library(GOxploreR)
+```
+
+Uploading data
+
+```{r}
+hum_gc <- read_delim("../data/GENCODE.tsv", delim = "\t", col_names = c("Transcript_ID", "Codon", "Length")) #3'UTR lengths obtained from GENCODE (whole dataset)
+
+mane<- read_delim("../data/MANE.tsv", delim = "\t", col_names = c("Transcript_ID")) #3'UTR lengths of transcripts having MANE Select status
+mane<- mane %>% mutate(Transcript_ID = str_remove_all(Transcript_ID, "\\.\\d*"))
+hum_mane <- merge(hum_gc, mane, by = "Transcript_ID")
+```
+
+3'UTR lengths distribution
+
+```{r}
+#Distribution properties
+hum_gc %>% group_by(Codon) %>% summarise(Mean = mean(Length), Max = max(Length), Min = min(Length), Median = median(Length), Std = sd(Length))
+hum_gc %>% group_by(Codon) %>% dplyr::count()
+
+hum_gc_u <- hum_gc
+hum_gc_u$Codon <- gsub("T", "U", hum_gc$Codon)
+
+
+hum_gc <- hum_gc %>% mutate(DS = "GENCODE") 
+hum_mane <- hum_mane %>% mutate(DS = "MANE") 
+hum_gc_mane <- rbind(hum_gc, hum_mane)
+hum_gc_mane$Codon <- gsub("T", "U", hum_gc_mane$Codon)
+
+hum_gc_mane_boxplot <- hum_gc_mane %>% ggplot(aes(x = Codon, y = Length, color = Codon)) +
+    geom_boxplot_pattern(lwd=1.1, fatten = 1, show.legend = TRUE, width = .8, aes(pattern = DS,pattern_alpha = 0.5))+
+    scale_color_manual(values = c("#ff7f00", "#007fff","#ff0065"))+
+    theme_minimal()+
+    theme(text = element_text(size = 25), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.title.y = element_text(margin = margin(t = 0, r = 20, b = 0, l= 0)), axis.title.x = element_text(margin = margin(t = 20, r = 0, b = 0, l=0)), axis.line.x = element_line(colour = 'black', linewidth = 0.5, linetype='solid'),
+          axis.line.y = element_line(colour = 'black', linewidth = 0.5, linetype='solid'), axis.ticks = element_line(colour = 'black'), axis.ticks.length=unit(0.2,"cm"), legend.key.size = unit(1.5,"cm"))+
+    scale_y_log10()+
+  scale_pattern_manual(values=c('wave', 'pch')) +
+  scale_pattern_type_manual(values=c(NA, 'triangle'))+
+    ylab("Length, nt")#Figure 5A
+  
+gc_mane_dens_all <- hum_gc_mane %>% ggplot(aes(x=Length, color=Codon, linetype=DS))+
+  geom_density(adjust=1.5, size=0.8)+
+  scale_color_manual(values = c("#ff7f00", "#007fff","#ff0065"))+
+  theme_ipsum(base_family = "Arial", base_size = 20, axis_title_size = 25,axis=TRUE, ticks=TRUE,  axis_title_just = "m")+
+  theme(text = element_text(size = 25), axis.text=element_text(size=25), axis.title = element_text(size=25),panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line.x = element_line(colour = 'black', linewidth = 0.5, linetype='solid'),
+          axis.line.y = element_line(colour = 'black', linewidth = 0.5, linetype='solid'), axis.ticks = element_line(colour = 'black'), axis.ticks.length=unit(0.2,"cm"),axis.title.y = element_text(margin = margin(t = 0, r = 20, b = 0, l= 0)), axis.title.x = element_text(margin = margin(t = 20, r = 0, b = 0, l=0)))+
+    xlab("Length")+ ylab("Density")+xlab("Length, nt")+labs(linetype = "Dataset")#Figure 5B upper
+
+gc_mane_dens_3000 <- hum_gc_mane %>% filter(Length<3000) %>% ggplot(aes(x=Length, color=Codon, linetype=DS))+
+  geom_density(adjust=1.5, size=0.8)+
+  scale_color_manual(values = c("#ff7f00", "#007fff","#ff0065"))+
+  theme_ipsum(base_family = "Arial", base_size = 20, axis_title_size = 25,axis=TRUE, ticks=TRUE,  axis_title_just = "m")+
+  theme(text = element_text(size = 25), axis.text=element_text(size=25), axis.title = element_text(size=25),panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line.x = element_line(colour = 'black', linewidth = 0.5, linetype='solid'),
+          axis.line.y = element_line(colour = 'black', linewidth = 0.5, linetype='solid'), axis.ticks = element_line(colour = 'black'), axis.ticks.length=unit(0.2,"cm"),axis.title.y = element_text(margin = margin(t = 0, r = 20, b = 0, l= 0)), axis.title.x = element_text(margin = margin(t = 20, r = 0, b = 0, l=0)))+
+    xlab("Length")+ ylab("Density")+xlab("Length, nt")+labs(linetype = "Dataset")#Figure 5B lower
+```
+
+GO and KEGG ORA
+
+```{r}
+#Creating a table of gene ids and 3'UTR lengths
+mart <- useMart("ENSEMBL_MART_ENSEMBL","hsapiens_gene_ensembl") 
+HUMAN_TOTAL_LIST <- getBM(c("ensembl_transcript_id","ensembl_gene_id"),"ensembl_transcript_id", hum_gc$Transcript_ID, mart)
+colnames(HUMAN_TOTAL_LIST) <- c("Transcript_ID", "Gene")
+hum_gc_genes <- merge(hum_gc, HUMAN_TOTAL_LIST, by="Transcript_ID") %>% dplyr::select(Gene,Codon,Length)
+
+#Creating analysis groups depending on the 3'UTR length
+hum_gc_10 <- hum_gc_genes %>% filter(Length <=10)
+hum_gc_30 <- hum_gc_genes %>% filter(Length <=30 & Length>10)
+hum_gc_150 <- hum_gc_genes %>% filter(Length <=150 & Length>31)
+hum_gc_mode <- hum_gc_genes %>% filter(Length>150 & Length<250)
+hum_gc_med <- hum_gc_genes %>% filter(Length >=615) %>% filter(Length <= 715)
+hum_gc_lng <- hum_gc_genes %>% filter(Length >=7424)
+```
+
+
+```{r}
+#Obtaining entrez gene IDs
+hum_gc_10_entr <- hum_gc_10 %>% dplyr::select(Gene) %>% getBM(attributes = "entrezgene_id", filters = "ensembl_gene_id", mart) %>% unique()
+hum_gc_30_entr <- hum_gc_30 %>% dplyr::select(Gene) %>% getBM(attributes = "entrezgene_id", filters = "ensembl_gene_id", mart) %>% unique()
+hum_gc_150_entr <- hum_gc_150 %>% dplyr::select(Gene) %>% getBM(attributes = "entrezgene_id", filters = "ensembl_gene_id", mart) %>% unique()
+hum_gc_mode_entr <- hum_gc_mode %>% dplyr::select(Gene) %>% getBM(attributes = "entrezgene_id", filters = "ensembl_gene_id", mart) %>% unique()
+hum_gc_med_entr <- hum_gc_med %>% dplyr::select(Gene) %>% getBM(attributes = "entrezgene_id", filters = "ensembl_gene_id", mart) %>% unique()
+hum_gc_lng_entr <- hum_gc_lng %>% dplyr::select(Gene) %>% getBM(attributes = "entrezgene_id", filters = "ensembl_gene_id", mart) %>% unique()
+
+
+#Adding groups according to the type of the stop-codon
+hum_gc_10_UAA <- hum_gc_10 %>% filter (Codon=="TAA") %>% dplyr::select(Gene) %>% getBM(attributes = "entrezgene_id", filters = "ensembl_gene_id", mart) %>% unique()
+hum_gc_10_UAG <- hum_gc_10 %>% filter (Codon=="TAG")%>% dplyr::select(Gene) %>% getBM(attributes = "entrezgene_id", filters = "ensembl_gene_id", mart) %>% unique()
+hum_gc_10_UGA <- hum_gc_10 %>% filter (Codon=="TGA")%>% dplyr::select(Gene) %>% getBM(attributes = "entrezgene_id", filters = "ensembl_gene_id", mart) %>% unique()
+hum_gc_30_UAA <- hum_gc_30 %>% filter (Codon=="TAA")%>% dplyr::select(Gene) %>% getBM(attributes = "entrezgene_id", filters = "ensembl_gene_id", mart) %>% unique()
+hum_gc_30_UAG <- hum_gc_30 %>% filter (Codon=="TAG")%>% dplyr::select(Gene) %>% getBM(attributes = "entrezgene_id", filters = "ensembl_gene_id", mart) %>% unique()
+hum_gc_30_UGA <- hum_gc_30 %>% filter (Codon=="TGA")%>% dplyr::select(Gene) %>% getBM(attributes = "entrezgene_id", filters = "ensembl_gene_id", mart) %>% unique()
+hum_gc_150_UAA <- hum_gc_150 %>% filter (Codon=="TAA")%>% dplyr::select(Gene) %>% getBM(attributes = "entrezgene_id", filters = "ensembl_gene_id", mart) %>% unique()
+hum_gc_150_UAG <- hum_gc_150 %>% filter (Codon=="TAG")%>% dplyr::select(Gene) %>% getBM(attributes = "entrezgene_id", filters = "ensembl_gene_id", mart) %>% unique()
+hum_gc_150_UGA <- hum_gc_150 %>% filter (Codon=="TGA")%>% dplyr::select(Gene) %>% getBM(attributes = "entrezgene_id", filters = "ensembl_gene_id", mart) %>% unique()
+
+hum_gc_mode_UAA <- hum_gc_mode %>% filter (Codon=="TAA")%>% dplyr::select(Gene) %>% getBM(attributes = "entrezgene_id", filters = "ensembl_gene_id", mart) %>% unique()
+hum_gc_mode_UAG <- hum_gc_mode %>% filter (Codon=="TAG")%>% dplyr::select(Gene) %>% getBM(attributes = "entrezgene_id", filters = "ensembl_gene_id", mart) %>% unique()
+hum_gc_mode_UGA <- hum_gc_mode %>% filter (Codon=="TGA")%>% dplyr::select(Gene) %>% getBM(attributes = "entrezgene_id", filters = "ensembl_gene_id", mart) %>% unique()
+
+
+hum_gc_med_UAA <- hum_gc_med %>% filter (Codon=="TAA")%>% dplyr::select(Gene) %>% getBM(attributes = "entrezgene_id", filters = "ensembl_gene_id", mart) %>% unique()
+hum_gc_med_UAG <- hum_gc_med %>% filter (Codon=="TAG")%>% dplyr::select(Gene) %>% getBM(attributes = "entrezgene_id", filters = "ensembl_gene_id", mart) %>% unique()
+hum_gc_med_UGA <- hum_gc_med %>% filter (Codon=="TGA")%>% dplyr::select(Gene) %>% getBM(attributes = "entrezgene_id", filters = "ensembl_gene_id", mart) %>% unique()
+
+hum_gc_lng_UAA <- hum_gc_lng %>% filter (Codon=="TAA")%>% dplyr::select(Gene) %>% getBM(attributes = "entrezgene_id", filters = "ensembl_gene_id", mart) %>% unique()
+hum_gc_lng_UAG <- hum_gc_lng %>% filter (Codon=="TAG")%>% dplyr::select(Gene) %>% getBM(attributes = "entrezgene_id", filters = "ensembl_gene_id", mart) %>% unique()
+hum_gc_lng_UGA <- hum_gc_lng %>% filter (Codon=="TGA")%>% dplyr::select(Gene) %>% getBM(attributes = "entrezgene_id", filters = "ensembl_gene_id", mart) %>% unique()
+
+#final list of genes from all the groups in the format appropriate for compareCluster()
+list_of_genes <- list(ten = hum_gc_10_entr$entrezgene_id,thirty = hum_gc_30_entr$entrezgene_id, big = hum_gc_150_entr$entrezgene_id,mode = hum_gc_mode_entr$entrezgene_id, med = hum_gc_med_entr$entrezgene_id, long = hum_gc_lng_entr$entrezgene_id, ten_UAA = hum_gc_10_UAA$entrezgene_id, ten_UAG = hum_gc_10_UAG$entrezgene_id, ten_UGA = hum_gc_10_UGA$entrezgene_id, thirty_UAA = hum_gc_30_UAA$entrezgene_id, thirty_UAG = hum_gc_30_UAG$entrezgene_id, thirty_UGA = hum_gc_30_UGA$entrezgene_id, big_UAA = hum_gc_150_UAA$entrezgene_id, big_UAG = hum_gc_150_UAG$entrezgene_id, big_UGA = hum_gc_150_UGA$entrezgene_id, med_UAA = hum_gc_med_UAA$entrezgene_id,mode_UAA = hum_gc_mode_UAA$entrezgene_id,mode_UAG = hum_gc_mode_UAG$entrezgene_id,mode_UGA = hum_gc_mode_UGA$entrezgene_id, med_UAG = hum_gc_med_UAG$entrezgene_id, med_UGA = hum_gc_med_UGA$entrezgene_id, long_UAA = hum_gc_lng_UAA$entrezgene_id, long_UAG = hum_gc_lng_UAG$entrezgene_id, long_UGA = hum_gc_lng_UGA$entrezgene_id)
+```
+
+GO ORA
+
+```{r}
+comp_all <- compareCluster(geneClusters = list_of_genes,  fun="enrichGO", OrgDb='org.Hs.eg.db', pvalueCutoff = 0.05, qvalueCutoff = 0.2, ont = "ALL", universe=hum_gc_genes_entr$entrezgene_id)
+```
+
+
+Filtering levels via GOxploreR
+
+```{r}
+compa_all_df <- fortify(comp_all, showCategory=100000, by="geneRatio", includeAll=TRUE, split=NULL)
+
+BP_gos <- compa_all_df %>% filter (ONTOLOGY == "BP") %>% filter(!(ID %in% c("GO:0170033", "GO:0170039", "GO:0170041", "GO:0170036", 'GO:0170035', "GO:0170040", "GO:0141137"))) %>% dplyr::select(ID) %>% unique()#filtered categories having no annotated level
+BP_levels <- BP_gos$ID %>% GOTermBPOnLevel()
+
+MF_gos <- compa_all_df %>% filter (ONTOLOGY == "MF")%>% filter(!(ID %in% c("GO:0141108")))%>% dplyr::select(ID) %>% unique()#filtered category having no annotated level
+MF_levels <- MF_gos$ID %>% GOTermMFOnLevel()
+
+CC_gos <- compa_all_df %>% filter (ONTOLOGY == "CC")%>% dplyr::select(ID) %>% unique()
+CC_levels <- CC_gos$ID %>% GOTermCCOnLevel()
+
+all_levels <- rbind(BP_levels, MF_levels, CC_levels)
+colnames(all_levels) <- c("ID", "Level")
+comp_all_levels <- merge(compa_all_df, all_levels, by = "ID")
+comp_all_levels_5 <- comp_all_levels %>% filter(Level>=5) %>% filter(Count > 4)
+```
+
+Function to obtain TOP categories from each cluster
+```{r}
+all_top_3 <- function(x){
+  comp_all_levels_5[order(comp_all_levels_5$p.adjust, decreasing = FALSE),] %>% filter(Cluster == x) %>% head(n = 3)
+}
+```
+
+```{r}
+cols <- colnames(comp_all_levels_5)
+```
+
+```{r}
+all_top_ten <- all_top_3("ten")
+all_top_ten_UAA <- all_top_3("ten_UAA")
+all_top_ten_UAG <- all_top_3("ten_UAG")
+all_top_ten_UGA <- all_top_3("ten_UGA")
+
+all_thirty <- all_top_3("thirty")
+all_thirty_UAA <- all_top_3("thirty_UAA")
+all_thirty_UAG <- all_top_3("thirty_UAG")
+all_thirty_UGA <- all_top_3("thirty_UGA")
+
+all_big <- all_top_3("big")
+all_big_UAA <- all_top_3("big_UAA")
+all_big_UAG <- all_top_3("big_UAG")
+all_big_UGA <- all_top_3("big_UGA")
+
+all_mod <- all_top_3("mode")
+all_mod_UAA <- all_top_3("mode_UAA")
+all_mod_UAG <- all_top_3("mode_UAG")
+all_mod_UGA <- all_top_3("mode_UAG")
+
+all_med <- all_top_3("med")
+all_med_UAA <- all_top_3("med_UAA")
+all_med_UAG <- all_top_3("med_UAG")
+all_med_UGA <- all_top_3("med_UGA")
+
+all_long <- all_top_3("long")
+all_long_UAA <- all_top_3("long_UAA")
+all_long_UAG <- all_top_3("long_UAG")
+all_long_UGA <- all_top_3("long_UGA")
+
+all_GO_comp_tops <- rbind(all_top_ten,all_top_ten_UAA, all_top_ten_UAG, all_top_ten_UGA,all_thirty,all_thirty_UAA,all_thirty_UAG, all_thirty_UGA,all_big,all_big_UAA,all_big_UAG,all_big_UGA, all_mod, all_mod_UAA, all_mod_UAG,all_mod_UGA, all_med, all_med_UAA,all_med_UAG, all_med_UGA, all_long, all_long_UAA, all_long_UAG, all_long_UGA)
+```
+
+
+Function for label design (taken from https://github.com/YuLab-SMU/enrichplot/blob/devel/R/utilities.R)
+```{r}
+default_labeller <- function(n) {
+    fun <- function(str){
+        str <- gsub("_", " ", str)
+        yulab.utils::str_wrap(str, n)
+    }
+    
+    structure(fun, class = "labeller")
+}
+enrichplot_point_shape <- ggfun:::enrichplot_point_shape
+label_func <- default_labeller(50)
+```
+
+Visualization of GO ORA result with dotplot (taken from https://github.com/YuLab-SMU/enrichplot/blob/devel/R/dotplot.R)
+```{r}
+
+comp_plot_data <- all_GO_comp_tops %>%dplyr::select(ID) %>% merge(comp_all_levels_5)
+add_ten <- comp_plot_data %>% head (n=2)
+add_ten$Cluster <- c("ten_UAG", "ten_UGA")
+comp_plot_data <- comp_plot_data %>% rbind(add_ten)
+add_ten$Cluster <- c("thirty_UAG", "thirty_UGA")
+comp_plot_data <- comp_plot_data %>% rbind(add_ten)
+
+
+comp_plot_data$Cluster <- factor(comp_plot_data$Cluster, levels = c("ten", "ten_UAA","ten_UAG", "ten_UGA", "thirty", "thirty_UAA", "thirty_UAG", "thirty_UGA", "big", "big_UAA", "big_UAG", "big_UGA", "mode", "mode_UAA", "mode_UAG", "mode_UGA", "med", "med_UAA", "med_UAG", "med_UGA", "long", "long_UAA", "long_UAG", "long_UGA"))
+
+x_labels <- c("ALL", "UAA","UAG","UGA","ALL", "UAA","UAG","UGA","ALL", "UAA","UAG","UGA","ALL", "UAA","UAG","UGA","ALL", "UAA","UAG","UGA","ALL", "UAA","UAG","UGA")
+
+comp_ord <-  comp_plot_data %>% ggplot(aes_string(x="Cluster", y = "Description", size = "GeneRatio"))+
+        scale_y_discrete(labels = label_func) +geom_point(aes_string(fill = "p.adjust")) + 
+            aes(shape = I(enrichplot_point_shape))+ set_enrichplot_color(type = "fill") +
+        ylab(NULL) + ggtitle("") + DOSE::theme_dose(27) +
+        scale_size_continuous(range=c(25, 35))+theme(axis.text.x = element_text(angle=90,vjust=0.5), legend.text = element_text(size=25), legend.key.size = unit(2, 'cm'), legend.title = element_text(size=25), axis.title.x = element_text(vjust=.5, size = 32))+
+  scale_x_discrete(labels = x_labels)#Figure S5
+```
+
+KEGG ORA
+
+```{r}
+comp_all_KEGG_res <- compareCluster(geneClusters = list_of_genes,  fun="enrichKEGG", pvalueCutoff = 0.05, qvalueCutoff = 0.2, universe=hum_gc_genes_entr$entrezgene_id)
+comp_all_KEGG <- fortify(comp_all_KEGG_res, showCategory=100000, by="geneRatio", includeAll=TRUE, split=NULL)
+comp_all_KEGG <- comp_all_KEGG %>% mutate(Cluster = str_remove_all(Cluster, "\\n\\(*\\d+\\)"))
+```
+
+```{r}
+top_5_kegg <- function(x){
+  comp_all_KEGG[order(comp_all_KEGG$p.adjust, decreasing = FALSE),] %>% filter (category != "Human Diseases") %>% filter(Cluster == x) %>% head(n = 5)
+}
+```
+
+
+```{r}
+top_ten_kegg <- top_5_kegg("ten")
+top_ten_UAA_kegg <- top_5_kegg("ten_UAA")
+top_ten_UAG_kegg <- top_5_kegg("ten_UAG")
+top_ten_UGA_kegg <- top_5_kegg("ten_UGA")
+
+thirty_kegg <- top_5_kegg("thirty")
+thirty_UAA_kegg <- top_5_kegg("thirty_UAA")
+thirty_UAG_kegg <- top_5_kegg("thirty_UAG")
+thirty_UGA_kegg <- top_5_kegg("thirty_UGA")
+
+big_kegg <- top_5_kegg("big")
+big_UAA_kegg <- top_5_kegg("big_UAA")
+big_UAG_kegg <- top_5_kegg("big_UAG")
+big_UGA_kegg <- top_5_kegg("big_UGA")
+
+mod_kegg <- top_5_kegg("mode")
+mod_UAA_kegg <- top_5_kegg("mode_UAA")
+mod_UAG_kegg <- top_5_kegg("mode_UAG")
+mod_UGA_kegg <- top_5_kegg("mode_UAG")
+
+med_kegg <- top_5_kegg("med")
+med_UAA_kegg <- top_5_kegg("med_UAA")
+med_UAG_kegg <- top_5_kegg("med_UAG")
+med_UGA_kegg <- top_5_kegg("med_UGA")
+
+long_kegg <- top_5_kegg("long")
+long_UAA_kegg <- top_5_kegg("long_UAA")
+long_UAG_kegg <- top_5_kegg("long_UAG")
+long_UGA_kegg <- top_5_kegg("long_UGA")
+
+kegg_comp_tops <- rbind(top_ten_kegg,top_ten_UAA_kegg, top_ten_UAG_kegg, top_ten_UGA_kegg,thirty_kegg,thirty_UAA_kegg,thirty_UAG_kegg, thirty_UGA_kegg,big_kegg,big_UAA_kegg,big_UAG_kegg,big_UGA_kegg, mod_kegg, mod_UAA_kegg, mod_UAG_kegg,mod_UGA_kegg, med_kegg, med_UAA_kegg,med_UAG_kegg, med_UGA_kegg, long_kegg, long_UAA_kegg, long_UAG_kegg, long_UGA_kegg)
+```
+
+```{r}
+kegg_plot_data <- kegg_comp_tops %>%dplyr::select(ID) %>% merge(comp_all_KEGG)
+add_ten <- kegg_plot_data %>% head (n=13) 
+add_ten$Cluster <- c("ten","ten_UAA","ten_UAG", "ten_UGA","thirty_UAA", "thirty_UGA","big_UAG","mode_UAA", "med_UAA", "med_UGA","long_UAA","long_UGA","long_UAG") #to add clusters without over-represented pathways to the x-axis  
+kegg_plot_data <- kegg_plot_data %>% rbind(add_ten)
+
+kegg_plot_data$Cluster <- factor(kegg_plot_data$Cluster, levels = c("ten", "ten_UAA","ten_UAG", "ten_UGA", "thirty", "thirty_UAA", "thirty_UAG", "thirty_UGA", "big", "big_UAA", "big_UAG", "big_UGA", "mode", "mode_UAA", "mode_UAG", "mode_UGA", "med", "med_UAA", "med_UAG", "med_UGA", "long", "long_UAA", "long_UAG", "long_UGA"))
+
+kegg_ord <-  kegg_plot_data %>% ggplot(aes_string(x="Cluster", y = "Description", size = "GeneRatio"))+
+        scale_y_discrete(labels = label_func) +geom_point(aes_string(fill = "p.adjust")) + 
+            aes(shape = I(enrichplot_point_shape))+ set_enrichplot_color(type = "fill") +
+        ylab(NULL) + ggtitle("") + DOSE::theme_dose(27) +
+        scale_size_continuous(range=c(25, 35))+theme(axis.text.x = element_text(angle=90,vjust=0.5), legend.text = element_text(size=25), legend.key.size = unit(2, 'cm'), legend.title = element_text(size=25), axis.title.x = element_text(vjust=.5, size = 32))+
+  scale_x_discrete(labels = x_labels)#Figure S6
+```
+
+Distribution of 3'UTR lengths of transcripts of genes presented in the "cytoplasmic tranlsation" nodes in the GO ORA results
+
+```{r}
+write_tsv(comp_all_levels_5 %>% filter(Description == "cytoplasmic translation"), file = "../data/GO_ORA_cytoplasmic_translation.tsv")
+
+#That file is processed via python script in ./3'UTR.ipynb
+
+transl <- read_delim ("../data/transl_genes.txt", delim = "\t", col_names = c("entezgene_id"))
+transl <- transl %>% mutate(entezgene_id = as.character(entezgene_id)) %>% unique()
+transl_ens <- getBM("ensembl_gene_id", "entrezgene_id", transl$entezgene_id, mart)
+colnames(transl_ens) <- c("Gene")
+transl_ens_lengths<- merge(transl_ens, hum_gc_genes, by = "Gene")
+
+transl_ens_lengths$Codon <- gsub("T", "U",transl_ens_lengths$Codon )
+
+transl_ens_lengths %>% ggplot(aes(x=Length, color=Codon))+
+     geom_density(adjust=1.5, size=0.8)+
+     scale_color_manual(values = c("#ff7f00", "#007fff","#ff0065"))+
+     theme_ipsum(base_family = "Arial", base_size = 20, axis_title_size = 25,axis=TRUE, ticks=TRUE,  axis_title_just = "m")+
+     theme(text = element_text(size = 25), axis.text=element_text(size=25), axis.title = element_text(size=25),panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line.x = element_line(colour = 'black', linewidth = 0.5, linetype='solid'),
+           axis.line.y = element_line(colour = 'black', linewidth = 0.5, linetype='solid'), axis.ticks = element_line(colour = 'black'), axis.ticks.length=unit(0.2,"cm"),axis.title.y = element_text(margin = margin(t = 0, r = 20, b = 0, l= 0)), axis.title.x = element_text(margin = margin(t = 20, r = 0, b = 0, l=0)))+labs(y="Density")+xlab("Length, nt")#Figure S7
+```
