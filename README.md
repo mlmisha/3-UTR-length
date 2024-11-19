@@ -1,7 +1,7 @@
-## Maximum Shortening and Structure of 3′UTR Affect Eukaryotic Translation ## 
+## Length and structure of 3′UTR of mRNA affect loading of release factors to the ribosome and stop codon recognition ## 
 
 
-> **Ali Salman, Mikhail Loev, Tatiana Egorova, Alexey Shuvalov, Ekaterina Shuvalova, Nikita Biziaev and Elena Alkalaeva**
+> **Ali Salman, Nikita Biziaev, Mikhail Loev, Tatiana Egorova, Alexey Shuvalov, Ekaterina Shuvalova and Elena Alkalaeva**
 
 > bisy201072@gmail.com
 
