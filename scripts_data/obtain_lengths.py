@@ -4,10 +4,8 @@ with open (GENCODE_PROTEIN_CODING_TRANSCRIPTS_FASTA_FILE, mode = "r") as data:
     line = data.readline().strip()
     while line!="":
         line = line.split("|")
-        print(line)
         trans_id = line[0][1::].split(".")[0]
         utr_coords = [1,-1]
-        print(line[len(line)-2])
         if line[len(line)-2].startswith("UTR3"):
             utr_coords = line[len(line)-2].split(":")[1].split("-")
         utr_length = int(utr_coords[1])-int(utr_coords[0])+1
