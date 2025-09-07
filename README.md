@@ -1,7 +1,7 @@
-## Length and structure of 3′UTR of mRNA affect loading of release factors to the ribosome and stop codon recognition ## 
+## Dual Role of 3′ UTR Length in Modulating Translation Termination Efficiency ## 
 
 
-> **Ali Salman, Nikita Biziaev, Mikhail Loev, Tatiana Egorova, Alexey Shuvalov, Ekaterina Shuvalova and Elena Alkalaeva**
+> **Ali Salman, Nikita Biziaev, Mikhail Loev, Tatiana Egorova, Alexey Shuvalov, Anastasia Zharikova, Sergey E. Dmitriev, Ekaterina Shuvalova and Elena Alkalaeva*
 
 > bisy201072@gmail.com
 
@@ -10,7 +10,7 @@ Hello! This is the repository corresponding to the research on the distribution 
 ---
 ### About
 
-The study is the part of the bigger experimental research on 3' untraslated regions in eukaryotes. One of the parts of the research is to analyse how length of 3'UTR correleates with translation efficiency  and mRNA stability.
+The study is the part of the bigger experimental research on 3' untraslated regions in eukaryotes. One of the parts of the research is to analyse how length of 3'UTR correleates with translation efficiency and mRNA stability.
 It raised the question of how naturally lengths of 3'UTR differ in the human transcriptome. To answer this question we analysed the GENCODE human protein-coding transcripts annotation (GENCODE v47, Rel. Oct 2024, GRCh38.p14).
 
 ### Contents
