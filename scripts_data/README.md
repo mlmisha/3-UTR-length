@@ -1,1 +1,3 @@
-There is the Python script `obtain_lengths.py` used to parse the file with annotated protein-coding human transcripts from GENCODE. The output is `../data/GENCODE.tsv`
+–`obtain_lengths.py` used to parse the file with annotated protein-coding human transcripts from GENCODE. The output is `../data/GENCODE.tsv`
+
+–`GTEx_expr.py` script that takes gunzipped GTEx dataset (https://storage.googleapis.com/adult-gtex/bulk-gex/v10/rna-seq/GTEx_Analysis_v10_RSEMv1.3.3_transcripts_tpm.txt.gz) and count mean, max, median and total TPM for each transcript in all the samples. It's written as it is because we splitted the original file into several pieces and analysed them separately. Output is `../data/EXP.tsv`
