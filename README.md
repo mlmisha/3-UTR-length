@@ -1,7 +1,7 @@
 ## Dual Role of 3′ UTR Length in Modulating Translation Termination Efficiency ## 
 
 
-> **Ali Salman, Nikita Biziaev, Mikhail Loev, Tatiana Egorova, Alexey Shuvalov, Anastasia Zharikova, Sergey E. Dmitriev, Ekaterina Shuvalova and Elena Alkalaeva*
+> Ali Salman, Nikita Biziaev, Mikhail Loev, Tatiana Egorova, Alexey Shuvalov, Anastasia Zharikova, Sergey E. Dmitriev, Ekaterina Shuvalova and Elena Alkalaeva
 
 > bisy201072@gmail.com
 
